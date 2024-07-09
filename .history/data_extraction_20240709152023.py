@@ -3,6 +3,7 @@ import sys
 
 sys.path.append("/Users/aolyu/Downloads/data 2")
 import torch
+print(torch.__version__)
 from PIL import Image
 import glob
 import pickle
@@ -27,10 +28,10 @@ def crop_to_square(img):
 
 class CLIP(object):
     def __init__(self):
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = "cuda"
         model, preprocess = clip.load("ViT-B/32", device=self.device)
         tokenizer = clip.tokenize
-        model = model.to(self.device)
+        model = model.cuda()
         self.model = model
         self.preprocess = preprocess
         self.tokenizer = tokenizer
@@ -44,7 +45,7 @@ class CLIP(object):
         return text_features
 
     def img_emb(self, img):
-        image = self.preprocess(img).unsqueeze(0).to(self.device)
+        image = self.preprocess(img).unsqueeze(0).to("cuda")
         with torch.no_grad():
             image_features = self.model.encode_image(image)
         return image_features
@@ -54,10 +55,10 @@ class CLIP(object):
             text = [text]
 
         if isinstance(image, list):
-            image = [self.preprocess(i).unsqueeze(0).to(self.device) for i in image]
-            image = torch.cat(image)
+            image = [self.preprocess(i).unsqueeze(0).to("cuda") for i in image]
+            image = torch.concat(image)
         else:
-            image = self.preprocess(image).unsqueeze(0).to(self.device)
+            image = self.preprocess(image).unsqueeze(0).to("cuda")
 
         text = self.tokenizer(text).to(self.device)
 
@@ -98,7 +99,7 @@ def main():
             res_ls.append((cur_img, cur_text))
 
     if len(res_ls) < args.num:
-        raise Exception("Not enough data from the source concept to select from. Please add more in the folder.")
+        Exception("Not enough data from the source concept to select from. Please add more in the folder. ")
 
     all_prompts = [d[1] for d in res_ls]
     text_emb = clip_model.text_emb(all_prompts)
@@ -120,10 +121,14 @@ def main():
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--directory', type=str, help="Directory containing the data files", default='')
-    parser.add_argument('-od', '--outdir', type=str, help="Output directory", default='')
-    parser.add_argument('-n', '--num', type=int, help="Number of samples to select", default=100)
-    parser.add_argument('-c', '--concept', type=str, required=True, help="Concept to search for in the images")
+    parser.add_argument('-d', '--directory', type=str,
+                        help="", default='')
+    parser.add_argument('-od', '--outdir', type=str,
+                        help="", default='')
+    parser.add_argument('-n', '--num', type=int,
+                        help="", default=100)
+    parser.add_argument('-c', '--concept', type=str, required=True,
+                        help="")
     return parser.parse_args(argv)
 
 
